@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon IA (Version TFJS)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #222; color: white;
+            display: flex; flex-direction: column; align-items: center;
+            margin: 0; padding: 20px;
+        }
+
+        /* Le conteneur vidéo + canvas */
+        #webcam-container {
+            border: 4px solid #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            /* On force une taille pour éviter les sauts */
+            width: 200px; height: 200px; 
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Les barres de résultats */
+        #label-container {
+            width: 300px;
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .label-row { margin-bottom: 15px; }
+        .label-text { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold;}
+        
+        .progress-bar {
+            width: 100%; height: 10px;
+            background: #555; border-radius: 5px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; width: 0%;
+            background: #00d2ff; transition: width 0.1s;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🤖 Reconnaissance TF.js</h1>
+    <button type="button" onclick="init()">Démarrer la Webcam</button>
+    
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <script type="text/javascript">
+        // Le chemin vers tes fichiers (doivent être dans le même dossier)
+        const URL = "./";
+
+        let model, webcam, labelContainer, maxPredictions;
+
+        async function init() {
+            const modelURL = URL + "./z_model/model.json";
+            const metadataURL = URL + "./z_model/metadata.json";
+
+            // 1. Chargement du modèle
+            // tmImage est l'objet magique fourni par la librairie script ci-dessus
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            // 2. Configuration Webcam
+            const flip = true; 
+            webcam = new tmImage.Webcam(200, 200, flip); // Largeur, Hauteur, Miroir
+            await webcam.setup(); // Demande l'accès
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            // 3. Ajout au DOM
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            
+            // Préparation des barres de progression
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                // On crée le HTML pour chaque classe
+                let div = document.createElement("div");
+                div.className = "label-row";
+                div.innerHTML = `
+                    <div class="label-text">
+                        <span id="name-${i}">Classe ${i}</span>
+                        <span id="score-${i}">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="bar-${i}" class="progress-fill"></div>
+                    </div>
+                `;
+                labelContainer.appendChild(div);
+            }
+        }
+
+        async function loop() {
+            webcam.update(); // Met à jour l'image webcam
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        // La fonction de prédiction modifiée pour changer la couleur de fond
+        async function predict() {
+            // 1. Prédiction
+            const prediction = await model.predict(webcam.canvas);
+            
+            // 2. On cherche la classe avec le plus haut score
+            let highestScore = 0;
+            let bestClass = "";
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const name = prediction[i].className;
+                const score = prediction[i].probability;
+                
+                // Mise à jour de l'affichage (Barres)
+                const nameSpan = document.getElementById(`name-${i}`);
+                const scoreSpan = document.getElementById(`score-${i}`);
+                const barDiv = document.getElementById(`bar-${i}`);
+                
+                const percent = (score * 100).toFixed(0) + "%";
+                nameSpan.innerHTML = name;
+                scoreSpan.innerHTML = percent;
+                barDiv.style.width = percent;
+
+                // On mémorise le meilleur score
+                if (score > highestScore) {
+                    highestScore = score;
+                    bestClass = name;
+                }
+            }
+
+            // 3. L'IA AGIT ! (Logique de réaction)
+            // On ne change que si l'IA est très sûre (> 90%)
+            if (highestScore > 0.90) {
+                
+                // Accède au body pour changer la couleur
+                const body = document.body;
+
+                // Adapte "Class 1" et "Class 2" aux vrais noms que tu as mis dans Teachable Machine !
+                // (Regarde tes fichiers ou la console pour les noms exacts)
+                if (bestClass === "Cats") { 
+                    body.style.backgroundColor = "#2ecc71"; // Vert
+                    body.style.transition = "background 0.5s";
+                } 
+                else if (bestClass === "Dogs") {
+                    body.style.backgroundColor = "#e74c3c"; // Rouge
+                    body.style.transition = "background 0.5s";
+                }
+            } else {
+                // Si l'IA hésite, on revient au gris
+                document.body.style.backgroundColor = "#222";
+            }
+        }
+
+</script>
+</body>
+</html>

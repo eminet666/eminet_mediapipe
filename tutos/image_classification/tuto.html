@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Reconnaissance d'Oiseaux MediaPipe</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <h1>🐦 Détecteur d'Oiseaux</h1>
+
+    <div id="liveView" class="videoView">
+        <button id="webcamButton" class="mdc-button mdc-button--raised">
+            <span class="mdc-button__label">ACTIVER LA WEBCAM</span>
+        </button>
+        
+        <div style="position: relative;">
+            <video id="webcam" autoplay playsinline></video>
+            <p id="predictionResult">En attente...</p>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Détection de Posture (Pose)</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0; padding: 20px;
+        }
+
+        #container {
+            position: relative;
+            margin-top: 20px;
+        }
+
+        /* Effet miroir pour que ce soit plus naturel */
+        video, canvas {
+            transform: scaleX(-1);
+            border-radius: 10px;
+        }
+
+        video { display: block; }
+        
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+
+        #status { font-size: 1.2rem; color: #00ff00; }
+    </style>
+</head>
+<body>
+
+    <h1>🏃‍♂️ Analyse de Posture 🧘‍♀️</h1>
+    <p id="status">Chargement du modèle...</p>
+
+    <div id="container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="outputCanvas"></canvas>
+    </div>
+
+    <script type="module">
+        import {
+            PoseLandmarker,
+            FilesetResolver,
+            DrawingUtils
+        } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
+        const video = document.getElementById("webcam");
+        const canvas = document.getElementById("outputCanvas");
+        const ctx = canvas.getContext("2d");
+        const statusText = document.getElementById("status");
+
+        let poseLandmarker = undefined;
+        let lastVideoTime = -1;
+
+        // 1. Initialisation
+        const createPoseLandmarker = async () => {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+            );
+
+            poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: "pose_landmarker.task", // Ton fichier
+                    delegate: "GPU"
+                },
+                runningMode: "VIDEO",
+                numPoses: 1 // Nombre de personnes à détecter
+            });
+
+            statusText.innerText = "✅ Modèle chargé ! Active la caméra.";
+            startWebcam();
+        };
+
+        // 2. Webcam
+        function startWebcam() {
+            navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.addEventListener("loadeddata", predictWebcam);
+                });
+        }
+
+        // 3. Boucle de Prédiction
+        async function predictWebcam() {
+            // Ajustement taille
+            if (canvas.width !== video.videoWidth) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            }
+
+            let startTimeMs = performance.now();
+
+            if (video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                
+                // Détection
+                const result = poseLandmarker.detectForVideo(video, startTimeMs);
+
+                // Dessin
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                if (result.landmarks && result.landmarks.length > 0) {
+                    const drawingUtils = new DrawingUtils(ctx);
+                    
+                    for (const landmark of result.landmarks) {
+                        // Dessiner les os (Connexions)
+                        drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS, {
+                            color: '#00FF00', // Vert Matrix
+                            lineWidth: 4
+                        });
+                        
+                        // Dessiner les articulations (Points)
+                        drawingUtils.drawLandmarks(landmark, {
+                            radius: 4,
+                            color: '#FF0000', // Rouge
+                            lineWidth: 2
+                        });
+                    }
+                    statusText.innerText = "Personne détectée !";
+                } else {
+                    statusText.innerText = "Personne non visible...";
+                }
+            }
+            window.requestAnimationFrame(predictWebcam);
+        }
+
+        createPoseLandmarker();
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+body {
+    font-family: sans-serif;
+    text-align: center;
+    background-color: #f4f4f4;
+}
+
+#container {
+    margin: 0 auto;
+    width: 640px; /* On fixe la largeur pour simplifier */
+}
+
+video {
+    display: block;
+    width: 640px;
+    height: 480px;
+    background-color: #000;
+    border-radius: 8px;
+}
+
+/* Le Canvas se superpose à la vidéo */
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 640px;
+    height: 480px;
+    pointer-events: none; /* Permet de cliquer à travers si besoin */
+}
+
+button {
+    margin-bottom: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}

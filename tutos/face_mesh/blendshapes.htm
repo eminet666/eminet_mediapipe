@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Face Mesh (Maillage du Visage)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>🎭 Face Mesh (478 points)</h1>
+    <div id="container">
+        <button id="webcamButton">ACTIVER LA WEBCAM</button>
+        <div style="position: relative;">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="outputCanvas"></canvas>
+        </div>
+    </div>
+
+    <div id="emoji-container" style="font-size: 100px; margin-top: 20px;">😐</div>
+    <p id="status">Fais une grimace !</p>
+
+    <script type="module" src="blendshapes.js"></script>
+</body>
+</html>

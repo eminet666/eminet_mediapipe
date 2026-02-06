@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Magie : Segmentation + Main</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>✋ Lève la main pour activer la Matrix ✋</h1>
+    
+    <div id="container">
+        <button id="webcamButton" disabled>CHARGEMENT DES MODÈLES...</button>
+        
+        <div style="position: relative;">
+            <video id="webcam" autoplay playsinline style="display: none;"></video>
+            <canvas id="outputCanvas"></canvas>
+        </div>
+        
+        <p id="status">En attente...</p>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

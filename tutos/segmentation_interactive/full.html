@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Segmentation Interactive Fix</title>
+    <style>
+        body { 
+            background: #222; color: white; text-align: center; font-family: sans-serif; 
+            margin: 0; padding: 20px;
+        }
+
+        /* Le conteneur magique qui force les tailles */
+        #container {
+            position: relative; /* Référence pour le canvas absolute */
+            display: inline-block; /* Colle à la taille de l'image */
+            border: 3px solid white; /* Pour bien voir les limites */
+            line-height: 0; /* Supprime les espaces fantômes */
+        }
+
+        #targetImage {
+            display: block;
+            max-width: 800px; /* On limite la taille pour tester */
+            width: 100%;      /* Responsive */
+            height: auto;
+        }
+
+        #outputCanvas {
+            position: absolute; /* Se superpose */
+            top: 0; left: 0;
+            width: 100%; height: 100%; /* FORCE visuellement la taille de l'image */
+            pointer-events: none; /* Laisse passer le clic */
+            
+            /* DEBUG : Si tu vois ce cadre rouge dépasser de l'image, c'est le problème */
+            outline: 2px dashed red; 
+        }
+    </style>
+</head>
+<body>
+
+    <h1>👆 Clique sur le Chat ou le Chien</h1>
+    <p id="status">Chargement...</p>
+
+    <div id="container">
+        <img id="targetImage" src="cats_and_dogs.jpg" crossorigin="anonymous">
+        <canvas id="outputCanvas"></canvas>
+    </div>
+
+    <script type="module">
+        import { InteractiveSegmenter, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
+        const image = document.getElementById("targetImage");
+        const canvas = document.getElementById("outputCanvas");
+        const ctx = canvas.getContext("2d");
+        const statusText = document.getElementById("status");
+        let interactiveSegmenter = undefined;
+
+        // 1. Initialisation
+        const createSegmenter = async () => {
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+            interactiveSegmenter = await InteractiveSegmenter.createFromOptions(vision, {
+                baseOptions: { modelAssetPath: "magic_touch.tflite", delegate: "GPU" },
+                outputCategoryMask: true,
+                outputConfidenceMasks: false
+            });
+            statusText.innerText = "✅ Prêt ! Clique !";
+        };
+
+        // 2. Configuration de la taille INTERNE du canvas (Pixels réels)
+        image.onload = () => {
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            console.log(`Taille réelle image: ${image.naturalWidth}x${image.naturalHeight}`);
+        };
+
+        // Si l'image est déjà en cache, on force le load
+        if (image.complete) image.onload();
+
+        createSegmenter();
+
+        // 3. Gestion du Clic
+        document.getElementById("container").addEventListener("click", async (event) => {
+            if (!interactiveSegmenter) return;
+
+            // On vérifie qu'on a bien cliqué sur l'image
+            if (event.target.id !== "targetImage") return;
+
+            const rect = event.target.getBoundingClientRect();
+            // Coordonnées du clic dans l'élément affiché
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Conversion en pourcentage (0.0 à 1.0)
+            const relativeX = x / rect.width;
+            const relativeY = y / rect.height;
+
+            statusText.innerText = `⏳ Analyse en cours à ${relativeX.toFixed(2)}, ${relativeY.toFixed(2)}...`;
+
+            interactiveSegmenter.segment(
+                image, 
+                { keypoint: { x: relativeX, y: relativeY } }, 
+                (result) => {
+                    drawResult(result);
+                    statusText.innerText = "✅ Terminé !";
+                }
+            );
+        });
+
+        // 4. Dessin
+        function drawResult(result) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Le masque arrive à la taille NATURELLE de l'image (ex: 4000px)
+            const mask = result.categoryMask.getAsFloat32Array();
+            const imageData = ctx.createImageData(canvas.width, canvas.height);
+            const pixels = imageData.data;
+
+            for (let i = 0; i < mask.length; i++) {
+                if (mask[i] > 0.5) {
+                    const index = i * 4;
+                    pixels[index] = 128;   // R (Violet)
+                    pixels[index + 1] = 0; // G
+                    pixels[index + 2] = 255; // B
+                    pixels[index + 3] = 150; // Alpha
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+    </script>
+</body>
+</html>

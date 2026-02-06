@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Segmentation (Fond Vert)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>✂️ Segmentation (Fond Virtuel)</h1>
+    
+    <div id="controls">
+        <button id="webcamButton">ACTIVER WEBCAM</button>
+        <button onclick="setMode('blur')">Flou</button>
+        <button onclick="setMode('color')">Fond Violet</button>
+        <button onclick="setMode('image')">Plage</button>
+    </div>
+
+    <div style="position: relative;">
+        <video id="webcam" autoplay playsinline style="display: none;"></video>
+        <canvas id="outputCanvas"></canvas>
+    </div>
+
+    <img id="beachImage" src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Clouds_over_the_Atlantic_Ocean.jpg" crossorigin="anonymous" style="display: none;">
+    <!-- <img id="beachImage" src="mer.jpg" style="display: none;"> -->
+
+    <script type="module" src="selfie.js"></script>
+</body>
+</html>

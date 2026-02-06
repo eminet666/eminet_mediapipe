@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Comparateur d'Images (Embedding)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #222;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .image-box {
+            background: #333;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        img {
+            width: 300px;
+            height: 200px; /* On force la taille pour l'esthétique */
+            object-fit: cover;
+            border-radius: 4px;
+            display: block;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        button:disabled { background: #555; cursor: wait; }
+
+        #result {
+            font-size: 2em;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #555;
+            display: inline-block;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🔍 Comparateur de Ressemblance</h1>
+    <p>Le modèle analyse le contenu mathématique des images.</p>
+
+    <div class="container">
+        <div class="image-box">
+            <h3>Image A</h3>
+            <img id="imgA" src="imageA.jpg" crossorigin="anonymous">
+            <!-- <img id="imgA" src="imageA1.jpg" crossorigin="anonymous"> -->
+        </div>
+        <div class="image-box">
+            <h3>Image B</h3>
+            <img id="imgB" src="imageB.jpg" crossorigin="anonymous">
+        </div>
+    </div>
+
+    <button id="compareBtn" disabled>Chargement du modèle...</button>
+    
+    <div id="result">En attente...</div>
+
+    <script type="module">
+        import { ImageEmbedder, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
+        const btn = document.getElementById("compareBtn");
+        const resultDiv = document.getElementById("result");
+        let imageEmbedder;
+
+        // 1. Chargement du modèle
+        async function createEmbedder() {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+            );
+
+            imageEmbedder = await ImageEmbedder.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: "embedder.tflite" // Ton fichier
+                },
+                runningMode: "IMAGE"
+            });
+
+            btn.disabled = false;
+            btn.innerText = "COMPARER LES IMAGES";
+        }
+
+        createEmbedder();
+
+        // 2. Action de comparaison
+        btn.addEventListener("click", async () => {
+            const imgA = document.getElementById("imgA");
+            const imgB = document.getElementById("imgB");
+
+            // Extraction de l'ADN numérique (Embedding)
+            const resultA = imageEmbedder.embed(imgA);
+            const resultB = imageEmbedder.embed(imgB);
+
+            // Calcul de la similarité
+            // MediaPipe a une fonction intégrée pour comparer deux embeddings
+            const similarity = ImageEmbedder.cosineSimilarity(
+                resultA.embeddings[0], 
+                resultB.embeddings[0]
+            );
+
+            displayResult(similarity);
+        });
+
+        // 3. Affichage
+        function displayResult(score) {
+            // Le score est entre -1 et 1. 
+            // En général, au-dessus de 0.7 c'est très ressemblant.
+            
+            // Conversion en pourcentage (approximatif pour l'affichage)
+            const percentage = (score * 100).toFixed(1);
+            
+            let color = "red";
+            let text = "Différent";
+
+            if (score > 0.8) {
+                color = "#0f0"; // Vert
+                text = "Très Similaire";
+            } else if (score > 0.6) {
+                color = "orange";
+                text = "Similaire";
+            }
+
+            resultDiv.style.borderColor = color;
+            resultDiv.style.color = color;
+            resultDiv.innerHTML = `${percentage}% de similarité<br><small>${text}</small>`;
+        }
+    </script>
+</body>
+</html>

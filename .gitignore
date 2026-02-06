@@ -1,0 +1,20 @@
+# ignore files
+.DS_Store
+Thumbs.db
+~*.*
+
+# ignore files
+**/z_*.*
+**/!_*.*
+**/*.bin
+**/*.npy
+**/*.pth
+/todo.txt
+
+# ignore models
+**/*.ckpt
+**/*.task
+**/*.tflite
+
+# ignore rep
+**/z_*
